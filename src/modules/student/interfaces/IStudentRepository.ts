@@ -1,0 +1,48 @@
+import { Student } from "../schema/Student.schema";
+import { UpdateStudentInput } from "../validators/UpdateStudentValidator";
+
+// What the repository actually persists on sign-up. The service hashes the
+// password and stamps the consent dates, so the repository never receives a
+// plain-text password (the old type said `password` but carried a hash).
+export type CreateStudentData = {
+  cpf: string;
+  name: string;
+  email: string;
+  passwordHash: string;
+  birthDate: string;
+  phones: string[];
+  termsAcceptedAt: Date;
+  privacyAcceptedAt: Date;
+};
+
+export interface IStudentRepository {
+  // RF03
+  create(data: CreateStudentData): Promise<Student>;
+
+  // Active students only. Includes phones, languages, experiences, skills and
+  // certifications.
+  findById(id: string): Promise<Student | null>;
+  findByEmail(email: string): Promise<Student | null>;
+
+  // RN06: uniqueness checks for sign-up. They INCLUDE deactivated students on
+  // purpose — the email and the CPF stay taken after deactivation (the columns
+  // are unique in the database).
+  existsByEmail(email: string): Promise<boolean>;
+  existsByCpf(cpf: string): Promise<boolean>;
+
+  // Used by the auth module on every authenticated request (cheap check).
+  existsActiveById(id: string): Promise<boolean>;
+
+  // RF01: the only method that returns the password hash
+  findByEmailWithPassword(email: string): Promise<Student | null>;
+
+  // RF04: name, email, phones, professional profile, languages, experiences,
+  // skills, certifications
+  update(studentId: string, data: UpdateStudentInput): Promise<void>;
+
+  // RF04: the CPF may only be corrected by an administrator
+  updateCpf(studentId: string, cpf: string): Promise<void>;
+
+  // RF10 / RNF08: deactivation, never physical deletion
+  deactivate(studentId: string): Promise<void>;
+}

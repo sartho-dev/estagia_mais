@@ -1,0 +1,164 @@
+import { z } from "zod";
+
+// ============================================================================
+// Reusable primitive schemas (Create + Update)
+// ============================================================================
+
+// Real CPF check: 11 digits, not a repeated sequence, valid check digits.
+function isValidCpf(cpf: string): boolean {
+  if (/^(\d)\1{10}$/.test(cpf)) return false;
+
+  const checkDigit = (base: string, firstWeight: number): number => {
+    let weight = firstWeight;
+    let sum = 0;
+    for (const digit of base) {
+      sum += Number(digit) * weight;
+      weight -= 1;
+    }
+    const remainder = (sum * 10) % 11;
+    return remainder === 10 ? 0 : remainder;
+  };
+
+  return (
+    checkDigit(cpf.slice(0, 9), 10) === Number(cpf[9]) &&
+    checkDigit(cpf.slice(0, 10), 11) === Number(cpf[10])
+  );
+}
+
+// RN06 / RNF03: CPF as 11 digits, no punctuation
+export const cpfSchema = z
+  .string()
+  .trim()
+  .regex(/^\d{11}$/, "CPF must contain exactly 11 digits, no punctuation")
+  .refine(isValidCpf, "CPF is not valid");
+
+// RN06: email must be unique, so it is normalised (trim + lowercase) BEFORE
+// being validated. Otherwise "Ana@x.com" and "ana@x.com" would be two accounts.
+export const emailSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .pipe(z.email("Invalid email"));
+
+export const nameSchema = z
+  .string()
+  .trim()
+  .min(3, "Name must have at least 3 characters")
+  .max(150, "Name must be at most 150 characters");
+
+// RNF01: minimum strength here; the hash (bcrypt cost 12) happens in the service.
+// bcrypt only reads the first 72 BYTES (not characters), so the limit is
+// measured in bytes — accents and emojis take more than one byte each.
+export const passwordSchema = z
+  .string()
+  .min(8, "Password must have at least 8 characters")
+  .refine(
+    (value) => Buffer.byteLength(value, "utf8") <= 72,
+    "Password is too long (bcrypt limit is 72 bytes)",
+  )
+  .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+  .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+  .regex(/[0-9]/, "Password must contain at least one number");
+
+// True only for real calendar dates ("2024-02-31" is rejected).
+export function isValidCalendarDate(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const date = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().startsWith(value);
+}
+
+// "YYYY-MM-DD" string that is a real calendar date (matches `type: "date"`).
+export const calendarDateSchema = (field: string) =>
+  z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, `${field} must be in YYYY-MM-DD format`)
+    .refine(isValidCalendarDate, `${field} is not a valid calendar date`);
+
+export const birthDateSchema = calendarDateSchema("birthDate").refine(
+  (value) => new Date(`${value}T00:00:00Z`).getTime() <= Date.now(),
+  { message: "birthDate cannot be in the future" },
+);
+
+// RF03: at least 1 phone number (multivalued attribute)
+export const phoneSchema = z
+  .string()
+  .trim()
+  .regex(/^\d{10,11}$/, "Phone must contain 10 or 11 digits, no punctuation");
+
+export const phonesSchema = z
+  .array(phoneSchema)
+  .min(1, "At least one phone number is required")
+  .max(5, "At most 5 phone numbers are allowed")
+  .refine((phones) => new Set(phones).size === phones.length, {
+    message: "Duplicate phone numbers are not allowed",
+  });
+
+// ============================================================================
+// Professional profile schemas (RF04) — optional, used on Update
+// ============================================================================
+
+export const urlSchema = z
+  .url("Must be a valid URL")
+  .max(255, "URL must be at most 255 characters")
+  .nullable();
+
+export const bioSchema = z
+  .string()
+  .trim()
+  .max(1000, "Bio must be at most 1000 characters")
+  .nullable();
+
+// "2027-07"
+export const expectedGraduationSchema = z
+  .string()
+  .regex(/^\d{4}-(0[1-9]|1[0-2])$/, "expectedGraduation must be YYYY-MM")
+  .refine(
+    (value) => {
+      const [year, month] = value.split("-").map(Number);
+      const end = new Date(Date.UTC(year, month, 0));
+      return end.getTime() >= Date.now();
+    },
+    { message: "expectedGraduation cannot be in the past" },
+  )
+  .nullable();
+
+export const currentSemesterSchema = z
+  .number()
+  .int("currentSemester must be an integer")
+  .min(1, "currentSemester must be at least 1")
+  .max(20, "currentSemester must be at most 20")
+  .nullable();
+
+export const institutionSchema = z
+  .string()
+  .trim()
+  .min(2, "institution must have at least 2 characters")
+  .max(150, "institution must be at most 150 characters")
+  .nullable();
+
+// ============================================================================
+// RF03 — Student sign-up
+// ============================================================================
+//
+// LGPD consent (RF03 / RNF03): the client only says "I accept" (true).
+// The timestamp is generated by the SERVER in the service, so the client
+// cannot choose the date that gets recorded as the moment of consent.
+
+export const createStudentSchema = z
+  .object({
+    cpf: cpfSchema,
+    name: nameSchema,
+    email: emailSchema,
+    password: passwordSchema,
+    birthDate: birthDateSchema,
+    phones: phonesSchema,
+    acceptedTerms: z.literal(true, {
+      error: "You must accept the terms of use",
+    }),
+    acceptedPrivacy: z.literal(true, {
+      error: "You must accept the privacy policy",
+    }),
+  })
+  .strict(); // rejects unknown fields
+
+export type CreateStudentInput = z.infer<typeof createStudentSchema>;

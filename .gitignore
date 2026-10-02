@@ -1,0 +1,139 @@
+# ============================================================================
+# Dependências
+# ============================================================================
+node_modules/
+.pnp
+.pnp.js
+.yarn/
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+
+# ============================================================================
+# Build / compilação
+# ============================================================================
+dist/
+build/
+out/
+*.tsbuildinfo
+.tsbuildinfo
+
+# ============================================================================
+# Variáveis de ambiente
+# ============================================================================
+# NUNCA commite arquivos com credenciais reais.
+# Commit apenas os templates abaixo.
+.env
+.env.*
+!.env.example
+!.env.template
+!.env.test.example
+
+# ============================================================================
+# Logs
+# ============================================================================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ============================================================================
+# Testes / cobertura
+# ============================================================================
+coverage/
+.nyc_output/
+*.lcov
+
+# ============================================================================
+# Cache de ferramentas
+# ============================================================================
+.eslintcache
+.stylelintcache
+.prettiercache
+.cache/
+.parcel-cache/
+.turbo/
+.nx/
+
+# ============================================================================
+# Docker / containers
+# ============================================================================
+# Volumes locais de docker-compose, se você mapear para uma pasta
+.docker/
+docker-compose.override.yml
+
+# ============================================================================
+# Banco de dados local
+# ============================================================================
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+pgdata/
+postgres-data/
+mysql-data/
+
+# ============================================================================
+# IDE / editores
+# ============================================================================
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/launch.json
+.idea/
+*.iml
+*.swp
+*.swo
+*.sublime-project
+*.sublime-workspace
+
+# ============================================================================
+# Sistema operacional
+# ============================================================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ============================================================================
+# Temporários
+# ============================================================================
+*.tmp
+*.temp
+tmp/
+temp/
+*.bak
+*.orig
+*.rej
+
+# ============================================================================
+# Uploads / arquivos enviados
+# ============================================================================
+# Se um dia o upload de currículo (RNF11) cair no filesystem local,
+# esses diretórios não devem ir pro Git.
+uploads/
+storage/
+public/uploads/
+private/uploads/
+
+# ============================================================================
+# TypeORM
+# ============================================================================
+# Migrations geradas automaticamente não entram.
+# Só migrations escritas à mão (versionadas) devem ser commitadas.
+# Descomente se você gerar migrations a partir das entities e não quiser versioná-las.
+# src/migrations/*.ts
+
+# ============================================================================
+# Pacotes / artefatos
+# ============================================================================
+*.tgz
+*.tar.gz
