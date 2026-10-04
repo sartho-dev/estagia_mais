@@ -1,13 +1,23 @@
 import { Router } from "express";
-import { studentController } from "../../shared/container";
+import { Container } from "../../shared/container";
 
-const studentRoutes = Router();
+export function studentRoutes(container: Container): Router {
+  const router = Router();
 
-studentRoutes.post(
-  "/",
-  studentController.createController.bind(studentController),
-);
+  router.post(
+    "/",
+    container.studentController.createController.bind(
+      container.studentController,
+    ),
+  );
 
-studentRoutes.post("/login");
+  router.patch(
+    "/",
+    container.authenticate,
+    container.studentController.updateController.bind(
+      container.studentController,
+    ),
+  );
 
-export { studentRoutes };
+  return router;
+}

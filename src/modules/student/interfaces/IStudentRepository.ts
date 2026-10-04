@@ -30,6 +30,11 @@ export interface IStudentRepository {
   existsByEmail(email: string): Promise<boolean>;
   existsByCpf(cpf: string): Promise<boolean>;
 
+  // RN06 on edit: is this email used by ANY student other than this one?
+  // (the student's own current email must not count as a conflict). Includes
+  // deactivated students.
+  isEmailTakenByOther(email: string, studentId: string): Promise<boolean>;
+
   // Used by the auth module on every authenticated request (cheap check).
   existsActiveById(id: string): Promise<boolean>;
 

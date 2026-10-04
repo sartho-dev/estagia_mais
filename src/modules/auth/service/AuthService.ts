@@ -5,19 +5,7 @@ import { IAuthAccountProvider } from "../interfaces/IAuthAccountProvider";
 import { ISessionRepository } from "../interfaces/ISessionRepository";
 import { AccountRole, AuthContext } from "../types/AccountRole";
 import { LoginInput } from "../validators/LoginValidator";
-
-// RNF01: bcrypt with cost 12 minimum (used for the timing-equalising hash)
-const BCRYPT_COST = 12;
-
-// RNF02: sessions expire after 60 minutes without use
-export const SESSION_IDLE_MS = 60 * 60 * 1000;
-
-// Hard ceiling, so a session that is used constantly still ends eventually.
-export const SESSION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
-
-// last_used_at is only rewritten when it is older than this, so a busy client
-// does not cause one database write per request.
-const TOUCH_THROTTLE_MS = 60 * 1000;
+import { config } from "../../../shared/config";
 
 export type LoginResult = {
   token: string;
@@ -36,9 +24,6 @@ function hashToken(token: string): string {
 export class AuthService {
   private providersByRole: Map<AccountRole, IAuthAccountProvider>;
 
-  // A real bcrypt hash that no password matches. Compared against when the
-  // email does not exist, so "unknown email" takes as long as "wrong password"
-  // and the response time does not reveal which emails are registered.
   private dummyHash: Promise<string>;
 
   constructor(
@@ -49,7 +34,11 @@ export class AuthService {
     this.providersByRole = new Map(providers.map((p) => [p.role, p]));
     this.dummyHash = bcrypt.hash(
       randomBytes(16).toString("hex"),
-      BCRYPT_COST,
+      config.bcryptCost,
+    );
+    console.log(
+      "[AuthService] constructor rodou em: ",
+      new Date().toISOString(),
     );
   }
 
@@ -57,6 +46,9 @@ export class AuthService {
   async login(input: LoginInput): Promise<LoginResult> {
     // RN06: an email is unique across ALL kinds of account, so the first
     // provider that knows it is the right one.
+
+    const emailUser = input.email;
+
     let found: {
       provider: IAuthAccountProvider;
       id: string;
@@ -64,7 +56,7 @@ export class AuthService {
     } | null = null;
 
     for (const provider of this.providers) {
-      const account = await provider.findForLogin(input.email);
+      const account = await provider.findForLogin(emailUser);
       if (account) {
         found = { provider, ...account };
         break;
@@ -81,11 +73,12 @@ export class AuthService {
 
     // 256 random bits; only the hash is stored.
     const token = randomBytes(32).toString("base64url");
+    const tokenHash = hashToken(token);
 
-    await this.sessions.create({
+    await this.sessions.replaceActiveSession({
       accountType: found.provider.role,
       accountId: found.id,
-      tokenHash: hashToken(token),
+      tokenHash,
       now: this.now(),
     });
 
@@ -93,7 +86,7 @@ export class AuthService {
       token,
       accountId: found.id,
       role: found.provider.role,
-      idleTimeoutMinutes: SESSION_IDLE_MS / 60_000,
+      idleTimeoutMinutes: config.sessionIdleMs / 60_000,
     };
   }
 
@@ -101,7 +94,10 @@ export class AuthService {
   // protected request.
   async authenticate(token: string): Promise<AuthContext> {
     const now = this.now();
+    console.log("\n this.now()>", now);
     const session = await this.sessions.findByTokenHash(hashToken(token));
+
+    console.log("\n sessão>", session);
 
     if (!session || session.revokedAt) {
       throw new AppError(INVALID_SESSION, 401);
@@ -110,7 +106,7 @@ export class AuthService {
     const idleFor = now.getTime() - session.lastUsedAt.getTime();
     const age = now.getTime() - session.createdAt.getTime();
 
-    if (idleFor > SESSION_IDLE_MS || age > SESSION_MAX_AGE_MS) {
+    if (idleFor > config.sessionIdleMs || age > config.sessionMaxAgeMs) {
       await this.sessions.revoke(session.id, now);
       throw new AppError(INVALID_SESSION, 401);
     }
@@ -126,7 +122,7 @@ export class AuthService {
       throw new AppError(INVALID_SESSION, 401);
     }
 
-    if (idleFor > TOUCH_THROTTLE_MS) {
+    if (idleFor > config.touchThrottleMs) {
       await this.sessions.touch(session.id, now);
     }
 
@@ -143,10 +139,7 @@ export class AuthService {
   }
 
   // To be called when an account is deactivated or its password changes.
-  async revokeAllSessions(
-    role: AccountRole,
-    accountId: string,
-  ): Promise<void> {
+  async revokeAllSessions(role: AccountRole, accountId: string): Promise<void> {
     await this.sessions.revokeAllForAccount(role, accountId, this.now());
   }
 }

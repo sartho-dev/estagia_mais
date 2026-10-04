@@ -1,4 +1,4 @@
-import { QueryFailedError, Repository } from "typeorm";
+import { Not, QueryFailedError, Repository } from "typeorm";
 import { Student } from "../schema/Student.schema";
 import { StudentPhone } from "../schema/StudentPhone.schema";
 import { StudentExperience } from "../schema/StudentExperience.schema";
@@ -91,6 +91,15 @@ export class StudentRepository implements IStudentRepository {
   // RN06: deactivated students are included on purpose — the CPF stays taken.
   async existsByCpf(cpf: string): Promise<boolean> {
     return await this.repository.exists({ where: { cpf } });
+  }
+
+  async isEmailTakenByOther(
+    email: string,
+    studentId: string,
+  ): Promise<boolean> {
+    return await this.repository.exists({
+      where: { email, id: Not(studentId) },
+    });
   }
 
   async existsActiveById(id: string): Promise<boolean> {

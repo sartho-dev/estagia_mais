@@ -39,6 +39,14 @@ export class SessionRepository implements ISessionRepository {
     );
   }
 
+  async findByUserId(userId: string): Promise<Session | null> {
+    const session = await this.repository.findOne({
+      where: { accountId: userId },
+    });
+
+    return session;
+  }
+
   async revokeAllForAccount(
     accountType: AccountRole,
     accountId: string,
@@ -48,5 +56,29 @@ export class SessionRepository implements ISessionRepository {
       { accountType, accountId, revokedAt: IsNull() },
       { revokedAt: at },
     );
+  }
+
+  async replaceActiveSession(data: {
+    accountType: AccountRole;
+    accountId: string;
+    tokenHash: string;
+    now: Date;
+  }): Promise<Session> {
+    return this.repository.manager.transaction(async (tm) => {
+      await tm.delete(Session, {
+        accountId: data.accountId,
+      });
+
+      const session = tm.create(Session, {
+        accountId: data.accountId,
+        accountType: data.accountType,
+        tokenHash: data.tokenHash,
+        createdAt: data.now,
+        lastUsedAt: data.now,
+        revokedAt: null,
+      });
+
+      return await tm.save(session);
+    });
   }
 }

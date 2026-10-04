@@ -10,17 +10,23 @@ import { Session } from "../../modules/auth/schema/Session.schema";
 import { AuthController } from "../../modules/auth/controller/AuthController";
 import { makeAuthenticate } from "../../modules/auth/middleware/authenticate";
 
-const studentRepository = new StudentRepository(
-  AppDataSource.getRepository(Student),
-);
-const studentService = new StudentService(studentRepository);
-export const studentController = new StudentController(studentService);
+export type Container = ReturnType<typeof buildContainer>;
 
-// When the responsible / admin modules exist, add their providers to this array.
-const authService = new AuthService(
-  [new StudentAuthProvider(studentRepository)],
-  new SessionRepository(AppDataSource.getRepository(Session)),
-);
+export function buildContainer() {
+  const studentRepository = new StudentRepository(
+    AppDataSource.getRepository(Student),
+  );
+  const studentService = new StudentService(studentRepository);
+  const studentController = new StudentController(studentService);
 
-export const authController = new AuthController(authService);
-export const authenticate = makeAuthenticate(authService);
+  // When the responsible / admin modules exist, add their providers to this array.
+  const authService = new AuthService(
+    [new StudentAuthProvider(studentRepository)],
+    new SessionRepository(AppDataSource.getRepository(Session)),
+  );
+
+  const authController = new AuthController(authService);
+  const authenticate = makeAuthenticate(authService);
+
+  return { studentController, authController, authenticate };
+}

@@ -23,4 +23,13 @@ export interface ISessionRepository {
     accountId: string,
     at: Date,
   ): Promise<void>;
+
+  findByUserId(userId: string): Promise<Session | null>;
+
+  replaceActiveSession(data: {
+    accountType: AccountRole;
+    accountId: string;
+    tokenHash: string;
+    now: Date;
+  }): Promise<Session>;
 }

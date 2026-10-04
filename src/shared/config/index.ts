@@ -23,6 +23,11 @@ export const config = {
   // Intervalo (minutos) entre varreduras do job que finaliza distratos cuja
   // janela de aviso prévio de 4 meses já decorreu (Task 25).
 
+  bcryptCost: Number(process.env.BCRYPT_COST ?? 12),
+  sessionIdleMs: Number(process.env.SESSION_IDLE_MS ?? 1_800_000),
+  sessionMaxAgeMs: Number(process.env.SESSION_MAX_AGE_MS ?? 7_200_000),
+  touchThrottleMs: Number(process.env.TOUCH_THROTTLE_MS ?? 60_000),
+
   db: {
     host: process.env.DB_HOST || "localhost",
     port: Number(process.env.DB_PORT) || 5432,

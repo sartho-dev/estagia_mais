@@ -18,7 +18,7 @@ export const AppDataSource = new DataSource({
   password: config.db.password,
   database: config.db.database,
   synchronize: false,
-  logging: true,
+  logging: false,
   // Usa o path.join para garantir que ele ache os arquivos, não importa a subpasta
   entities: [path.join(baseDir, "modules/**/schema/*.{js,ts}")],
   migrations: [path.join(baseDir, "shared/database/migrations/*.{js,ts}")],

@@ -6,6 +6,9 @@ import {
   CreateStudentResponse,
 } from "../../../shared/types/ApiResponse";
 import { asyncHandler } from "../../../shared/middleware/asyncHandler";
+import { updateStudentSchema } from "../validators/UpdateStudentValidator";
+import { getAuth } from "../../auth/types/AccountRole";
+import { StudentProfileResult } from "../service/TypesStudentsService";
 
 export class StudentController {
   constructor(private studentService: StudentService) {}
@@ -22,5 +25,17 @@ export class StudentController {
     res.status(201).json(response);
   });
 
-  
+  updateController = asyncHandler(async (req: Request, res: Response) => {
+    const data = updateStudentSchema.parse(req.body);
+    const { accountId: studentId } = getAuth(res);
+
+    const profile = await this.studentService.updateService(studentId, data);
+
+    const response: ApiResponse<StudentProfileResult> = {
+      status: "success",
+      data: profile,
+    };
+
+    res.status(200).json(response);
+  });
 }

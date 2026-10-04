@@ -3,17 +3,17 @@ import { Server } from "http";
 import helmet from "helmet";
 import cors from "cors";
 import swaggerUi from "swagger-ui-express";
-import { AppDataSource } from "./shared/database/data-source"; // Ajuste o caminho conforme seu projeto
-import { config } from "./shared/config"; // Ajuste o caminho conforme seu projeto
-import routesMain from "./routes"; // Ajuste o caminho conforme seu projeto
-import { errorHandler } from "./shared/middleware/errorHandler"; // Ajuste o caminho
-import swaggerSpec from "./shared/docs/swagger"; // Ajuste o caminho
+import { config } from "./shared/config";
+import routesMain from "./routes";
+import { errorHandler } from "./shared/middleware/errorHandler";
+import swaggerSpec from "./shared/docs/swagger";
+import { Container } from "./shared/container";
 
 export class App {
   private _app: Application;
   private server: Server | null = null;
 
-  constructor() {
+  constructor(private container: Container) {
     this._app = express();
     this.config();
     this.routes();
@@ -43,23 +43,11 @@ export class App {
   }
 
   private routes() {
-    this._app.use(routesMain);
+    this._app.use(routesMain(this.container));
     this._app.use(errorHandler);
   }
 
-  private async initDatabase(): Promise<void> {
-    try {
-      await AppDataSource.initialize();
-      console.log("📦 Banco de dados conectado com sucesso!");
-    } catch (error) {
-      console.error("❌ Erro ao conectar no banco de dados:", error);
-      process.exit(1);
-    }
-  }
-
   public async listen(): Promise<void> {
-    await this.initDatabase();
-
     this.server = this._app.listen(config.port, "0.0.0.0", () => {
       console.log(`🚀 Servidor rodando em http://0.0.0.0:${config.port}`);
       console.log(

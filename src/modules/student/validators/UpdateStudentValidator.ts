@@ -5,9 +5,6 @@ import {
   phonesSchema,
   urlSchema,
   bioSchema,
-  expectedGraduationSchema,
-  currentSemesterSchema,
-  institutionSchema,
   calendarDateSchema,
 } from "./CreateStudentValidator";
 import { LanguageLevel } from "../schema/StudentLanguage.schema";
@@ -166,9 +163,6 @@ export const updateStudentSchema = z
     bio: bioSchema.optional(),
     linkedinUrl: urlSchema.optional(),
     portfolioUrl: urlSchema.optional(),
-    expectedGraduation: expectedGraduationSchema.optional(),
-    currentSemester: currentSemesterSchema.optional(),
-    institution: institutionSchema.optional(),
 
     // --- Multivalued lists ---
     languages: languagesSchema.optional(),

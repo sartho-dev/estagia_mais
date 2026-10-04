@@ -2,19 +2,15 @@ import bcrypt from "bcrypt";
 import { AppError } from "../../../shared/errors/AppError";
 import { IStudentRepository } from "../interfaces/IStudentRepository";
 import { CreateStudentInput } from "../validators/CreateStudentValidator";
+import { UpdateStudentInput } from "../validators/UpdateStudentValidator";
+import {
+  StudentCreatedResult,
+  StudentProfileResult,
+} from "./TypesStudentsService";
+import { toProfileResult } from "./toProfileResult";
 
 // RNF01: bcrypt with cost 12 minimum
 const BCRYPT_COST = 12;
-
-export type StudentCreatedResult = {
-  id: string;
-  cpf: string;
-  name: string;
-  email: string;
-  birthDate: string;
-  // RF03: one or more phone numbers are required at sign-up
-  phones: string[];
-};
 
 export class StudentService {
   // Depends on the interface, not on the TypeORM implementation.
@@ -60,5 +56,32 @@ export class StudentService {
       birthDate: student.birthDate,
       phones: student.phones.map((phone) => phone.number),
     };
+  }
+
+  async updateService(
+    studentId: string,
+    data: UpdateStudentInput,
+  ): Promise<StudentProfileResult> {
+    // RN06: only when the email is actually being changed. The check excludes
+    // this student, so re-sending their current email is not a conflict. The
+    // database unique constraint (409 in the repository) still covers the
+    // simultaneous-request case.
+    if (
+      data.email !== undefined &&
+      (await this.repository.isEmailTakenByOther(data.email, studentId))
+    ) {
+      throw new AppError("Email already in use", 409);
+    }
+
+    // Throws 404 if the student does not exist or is deactivated.
+    await this.repository.update(studentId, data);
+
+    const student = await this.repository.findById(studentId);
+
+    if (!student) {
+      throw new AppError("Student not found", 404);
+    }
+
+    return toProfileResult(student);
   }
 }

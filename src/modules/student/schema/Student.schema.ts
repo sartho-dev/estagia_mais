@@ -69,21 +69,6 @@ export class Student {
   @CreateDateColumn({ name: "created_at", type: "timestamptz" })
   createdAt: Date;
 
-  @Column({
-    name: "expected_graduation",
-    type: "char",
-    length: 7,
-    nullable: true,
-  })
-  expectedGraduation: string | null;
-
-  // Semestre atual (1 a 20, para caber qualquer curso)
-  @Column({ name: "current_semester", type: "smallint", nullable: true })
-  currentSemester: number | null;
-
-  @Column({ name: "institution", type: "varchar", length: 150, nullable: true })
-  institution: string | null;
-
   // RF03 / RNF03: signing up requires accepting the terms of use and the
   // privacy policy, and the LGPD requires that consent to be recorded.
   @Column({ name: "terms_accepted_at", type: "timestamptz" })

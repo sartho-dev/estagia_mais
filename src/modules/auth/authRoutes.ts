@@ -1,9 +1,18 @@
 import { Router } from "express";
-import { authController, authenticate } from "../../shared/container";
+import { Container } from "../../shared/container";
 
-const authRoutes = Router();
+export function authRoutes(container: Container): Router {
+  const router = Router();
 
-authRoutes.post("/login", authController.loginController.bind(authController));
-authRoutes.post("/logout", authenticate, authController.logoutController);
+  router.post(
+    "/login",
+    container.authController.loginController.bind(container.authController),
+  );
 
-export { authRoutes };
+  router.post(
+    "/logout",
+    container.authController.logoutController.bind(container.authController),
+  );
+
+  return router;
+}

@@ -108,34 +108,6 @@ export const bioSchema = z
   .max(1000, "Bio must be at most 1000 characters")
   .nullable();
 
-// "2027-07"
-export const expectedGraduationSchema = z
-  .string()
-  .regex(/^\d{4}-(0[1-9]|1[0-2])$/, "expectedGraduation must be YYYY-MM")
-  .refine(
-    (value) => {
-      const [year, month] = value.split("-").map(Number);
-      const end = new Date(Date.UTC(year, month, 0));
-      return end.getTime() >= Date.now();
-    },
-    { message: "expectedGraduation cannot be in the past" },
-  )
-  .nullable();
-
-export const currentSemesterSchema = z
-  .number()
-  .int("currentSemester must be an integer")
-  .min(1, "currentSemester must be at least 1")
-  .max(20, "currentSemester must be at most 20")
-  .nullable();
-
-export const institutionSchema = z
-  .string()
-  .trim()
-  .min(2, "institution must have at least 2 characters")
-  .max(150, "institution must be at most 150 characters")
-  .nullable();
-
 // ============================================================================
 // RF03 — Student sign-up
 // ============================================================================
